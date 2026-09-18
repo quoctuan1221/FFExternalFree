@@ -18,10 +18,10 @@
 - (instancetype)init {
     self = [super init];
     if (self) {
-        _espEnabled = YES;
-        _aimbotEnabled = YES;
-        _noRecoilEnabled = YES;
-        _noReloadEnabled = YES;
+        _espEnabled = NO;
+        _aimbotEnabled = NO;
+        _noRecoilEnabled = NO;
+        _noReloadEnabled = NO;
         _speedEnabled = NO;
         _gravityEnabled = NO;
         _speedMultiplier = 2.0f;
