@@ -31,8 +31,7 @@ jobs:
           xcrun -sdk iphoneos clang -arch arm64 \
             -miphoneos-version-min=14.0 \
             -fobjc-arc \
-            -Wno-deprecated-declarations \
-            -Wno-implicit-function-declaration \
+            -w \
             -framework Foundation \
             -framework UIKit \
             -framework CoreGraphics \
