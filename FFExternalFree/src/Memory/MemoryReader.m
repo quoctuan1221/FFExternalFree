@@ -72,12 +72,17 @@ extern kern_return_t task_for_pid(
     int count = (int)(size / sizeof(struct kinfo_proc));
     pid_t resultPID = 0;
 
+    NSArray *targetNames = @[@"FreeFire", @"freefire", @"Free Fire", @"garenafreefire", @"FFMAX", @"freefireth", @"FreeFireTH", processName];
+
     for (int i = 0; i < count; i++) {
         NSString *name = [NSString stringWithUTF8String:procs[i].kp_proc.p_comm];
-        if ([name caseInsensitiveCompare:processName] == NSOrderedSame || [name containsString:processName]) {
-            resultPID = procs[i].kp_proc.p_pid;
-            break;
+        for (NSString *target in targetNames) {
+            if ([name caseInsensitiveCompare:target] == NSOrderedSame || [name containsString:target]) {
+                resultPID = procs[i].kp_proc.p_pid;
+                break;
+            }
         }
+        if (resultPID > 0) break;
     }
 
     free(procs);
