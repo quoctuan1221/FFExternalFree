@@ -1,4 +1,5 @@
 #import "MemoryReader.h"
+#import <mach/mach.h>
 
 // Forward declarations for Mach VM APIs on iOS SDK
 typedef uint64_t mach_vm_address_t;
@@ -23,16 +24,6 @@ extern kern_return_t mach_vm_write(
     mach_msg_type_number_t dataCnt
 );
 
-extern kern_return_t mach_vm_region(
-    vm_map_t target_task,
-    mach_vm_address_t *address,
-    mach_vm_size_t *size,
-    vm_region_flavor_t flavor,
-    vm_region_info_t info,
-    mach_msg_type_number_t *infoCnt,
-    mach_port_t *object_name
-);
-
 #ifdef __cplusplus
 }
 #endif
@@ -53,7 +44,7 @@ extern kern_return_t mach_vm_region(
     if (self) {
         _targetPID = 0;
         _targetTask = 0;
-        _baseAddress = 0;
+        _baseAddress = 0x100000000; // ASLR Default Base
         _isConnected = NO;
     }
     return self;
@@ -100,18 +91,7 @@ extern kern_return_t mach_vm_region(
         return NO;
     }
 
-    // Lấy Base Address
-    mach_vm_address_t address = 0x100000000;
-    mach_vm_size_t size = 0;
-    vm_region_basic_info_data_64_t info;
-    mach_msg_type_number_t count = VM_REGION_BASIC_INFO_COUNT_64;
-    mach_port_t object_name = MACH_PORT_NULL;
-
-    kr = mach_vm_region(self.targetTask, &address, &size, VM_REGION_BASIC_INFO_64, (vm_region_info_t)&info, &count, &object_name);
-    if (kr == KERN_SUCCESS) {
-        self.baseAddress = (uintptr_t)address;
-    }
-
+    self.baseAddress = 0x100000000;
     self.isConnected = YES;
     return YES;
 }
