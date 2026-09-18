@@ -28,7 +28,9 @@ jobs:
         run: |
           mkdir -p build/Payload/FFExternalFree.app
           
+          # Compile Objective-C files to arm64 iOS binary
           xcrun -sdk iphoneos clang -arch arm64 \
+            -isysroot $(xcrun -sdk iphoneos --show-sdk-path) \
             -miphoneos-version-min=14.0 \
             -fobjc-arc \
             -w \

@@ -24,6 +24,12 @@ extern kern_return_t mach_vm_write(
     mach_msg_type_number_t dataCnt
 );
 
+extern kern_return_t task_for_pid(
+    mach_port_t target_tport,
+    int pid,
+    mach_port_t *tn
+);
+
 #ifdef __cplusplus
 }
 #endif
