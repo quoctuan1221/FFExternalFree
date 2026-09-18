@@ -92,7 +92,7 @@
 
     [self.floatingIcon addTarget:self action:@selector(toggleMenu) forControlEvents:UIControlEventTouchUpInside];
 
-    UIPanGestureRecognizer *pan = [[UIPanGestureRecognizer alloc] initWithTarget:self selector:@selector(handlePan:)];
+    UIPanGestureRecognizer *pan = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(handlePan:)];
     [self.floatingIcon addGestureRecognizer:pan];
 
     [self.view addSubview:self.floatingIcon];
