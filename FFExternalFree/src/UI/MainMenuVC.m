@@ -1,7 +1,6 @@
 #import "MainMenuVC.h"
 #import "../Features/CheatController.h"
 #import "../Features/ESPOverlayView.h"
-#import <objc/runtime.h>
 
 @interface MainMenuVC ()
 @property (nonatomic, strong) UIView *menuContainerView;
@@ -14,6 +13,8 @@
 @property (nonatomic, strong) UIButton *tabEspBtn;
 @property (nonatomic, strong) UIButton *tabAimbotBtn;
 @property (nonatomic, strong) UIButton *tabOtherBtn;
+@property (nonatomic, strong) UILabel *aimSpeedValLabel;
+@property (nonatomic, strong) UILabel *circleSizeValLabel;
 @end
 
 @implementation MainMenuVC
@@ -147,7 +148,7 @@
     [tabHeader addSubview:self.tabAimbotBtn];
     [tabHeader addSubview:self.tabOtherBtn];
 
-    // Content Scroll View
+    // Content View
     self.contentScrollView = [[UIView alloc] initWithFrame:CGRectMake(0, 88, width, height - 88 - 30)];
     [self.menuContainerView addSubview:self.contentScrollView];
 
@@ -186,7 +187,6 @@
 - (void)selectTabAtIndex:(NSInteger)index {
     self.currentTabIndex = index;
 
-    // Reset styles
     self.tabEspBtn.backgroundColor = [UIColor clearColor];
     self.tabAimbotBtn.backgroundColor = [UIColor clearColor];
     self.tabOtherBtn.backgroundColor = [UIColor clearColor];
@@ -216,15 +216,14 @@
 
     CheatController *cheat = [CheatController sharedInstance];
     CGFloat y = 10;
-    CGFloat width = self.contentScrollView.bounds.size.width;
 
     [self addSectionHeader:@"Switch" y:y]; y += 24;
 
-    [self addRowToggle:@"Enable Esp" isOn:cheat.espEnabled y:y target:cheat setter:@selector(setEspEnabled:)]; y += 46;
-    [self addRowToggle:@"Line Esp" isOn:cheat.lineEspEnabled y:y target:cheat setter:@selector(setLineEspEnabled:)]; y += 46;
-    [self addRowToggle:@"Box Esp" isOn:cheat.boxEspEnabled y:y target:cheat setter:@selector(setBoxEspEnabled:)]; y += 46;
-    [self addRowToggle:@"Info Esp" isOn:cheat.infoEspEnabled y:y target:cheat setter:@selector(setInfoEspEnabled:)]; y += 46;
-    [self addRowToggle:@"Bone Esp" isOn:cheat.boneEspEnabled y:y target:cheat setter:@selector(setBoneEspEnabled:)]; y += 46;
+    [self addRowToggle:@"Enable Esp" isOn:cheat.espEnabled y:y action:@selector(onEspToggle:)]; y += 44;
+    [self addRowToggle:@"Line Esp" isOn:cheat.lineEspEnabled y:y action:@selector(onLineEspToggle:)]; y += 44;
+    [self addRowToggle:@"Box Esp" isOn:cheat.boxEspEnabled y:y action:@selector(onBoxEspToggle:)]; y += 44;
+    [self addRowToggle:@"Info Esp" isOn:cheat.infoEspEnabled y:y action:@selector(onInfoEspToggle:)]; y += 44;
+    [self addRowToggle:@"Bone Esp" isOn:cheat.boneEspEnabled y:y action:@selector(onBoneEspToggle:)]; y += 44;
 }
 
 - (void)renderAimbotTab {
@@ -235,15 +234,15 @@
 
     [self addSectionHeader:@"Switch" y:y]; y += 24;
 
-    [self addRowToggle:@"Enable Aimbot" isOn:cheat.aimbotEnabled y:y target:cheat setter:@selector(setAimbotEnabled:)]; y += 44;
-    [self addRowToggle:@"Ignore Knock" isOn:cheat.ignoreKnock y:y target:cheat setter:@selector(setIgnoreKnock:)]; y += 44;
-    [self addRowToggle:@"Ignore Bot" isOn:cheat.ignoreBot y:y target:cheat setter:@selector(setIgnoreBot:)]; y += 44;
-    [self addRowToggle:@"Aim Wukong" isOn:cheat.aimWukong y:y target:cheat setter:@selector(setAimWukong:)]; y += 44;
+    [self addRowToggle:@"Enable Aimbot" isOn:cheat.aimbotEnabled y:y action:@selector(onAimbotToggle:)]; y += 44;
+    [self addRowToggle:@"Ignore Knock" isOn:cheat.ignoreKnock y:y action:@selector(onIgnoreKnockToggle:)]; y += 44;
+    [self addRowToggle:@"Ignore Bot" isOn:cheat.ignoreBot y:y action:@selector(onIgnoreBotToggle:)]; y += 44;
+    [self addRowToggle:@"Aim Wukong" isOn:cheat.aimWukong y:y action:@selector(onAimWukongToggle:)]; y += 44;
 
     [self addSectionHeader:@"Slider" y:y]; y += 24;
 
-    [self addRowSlider:@"Aim Speed" value:cheat.aimSpeed min:0 max:100 y:y onChange:^(float val) { cheat.aimSpeed = val; }]; y += 48;
-    [self addRowSlider:@"Circle Size" value:cheat.circleSize min:0 max:100 y:y onChange:^(float val) { cheat.circleSize = val; }]; y += 48;
+    self.aimSpeedValLabel = [self addRowSlider:@"Aim Speed" value:cheat.aimSpeed min:0 max:100 y:y action:@selector(onAimSpeedSlider:)]; y += 48;
+    self.circleSizeValLabel = [self addRowSlider:@"Circle Size" value:cheat.circleSize min:0 max:100 y:y action:@selector(onCircleSizeSlider:)]; y += 48;
 }
 
 - (void)renderOtherTab {
@@ -254,10 +253,10 @@
 
     [self addSectionHeader:@"Switch" y:y]; y += 24;
 
-    [self addRowToggle:@"No Recoil" isOn:cheat.noRecoilEnabled y:y target:cheat setter:@selector(setNoRecoilEnabled:)]; y += 46;
-    [self addRowToggle:@"No Reload" isOn:cheat.noReloadEnabled y:y target:cheat setter:@selector(setNoReloadEnabled:)]; y += 46;
-    [self addRowToggle:@"Speed Hack 2x" isOn:cheat.speedEnabled y:y target:cheat setter:@selector(setSpeedEnabled:)]; y += 46;
-    [self addRowToggle:@"Gravity Hack" isOn:cheat.gravityEnabled y:y target:cheat setter:@selector(setGravityEnabled:)]; y += 46;
+    [self addRowToggle:@"No Recoil" isOn:cheat.noRecoilEnabled y:y action:@selector(onNoRecoilToggle:)]; y += 44;
+    [self addRowToggle:@"No Reload" isOn:cheat.noReloadEnabled y:y action:@selector(onNoReloadToggle:)]; y += 44;
+    [self addRowToggle:@"Speed Hack 2x" isOn:cheat.speedEnabled y:y action:@selector(onSpeedToggle:)]; y += 44;
+    [self addRowToggle:@"Gravity Hack" isOn:cheat.gravityEnabled y:y action:@selector(onGravityToggle:)]; y += 44;
 }
 
 #pragma mark - Component Helpers
@@ -269,7 +268,7 @@
     [self.contentScrollView addSubview:lbl];
 }
 
-- (void)addRowToggle:(NSString *)title isOn:(BOOL)isOn y:(CGFloat)y target:(id)target setter:(SEL)setter {
+- (void)addRowToggle:(NSString *)title isOn:(BOOL)isOn y:(CGFloat)y action:(SEL)action {
     CGFloat width = self.contentScrollView.bounds.size.width;
 
     UILabel *lbl = [[UILabel alloc] initWithFrame:CGRectMake(16, y + 6, 180, 24)];
@@ -280,28 +279,12 @@
 
     UISwitch *sw = [[UISwitch alloc] initWithFrame:CGRectMake(width - 66, y + 2, 50, 30)];
     sw.on = isOn;
-    sw.onTintColor = [UIColor colorWithRed:0.2 green:0.8 blue:0.3 alpha:1.0]; // Xanh lá mượt như ảnh
-    [sw addTarget:self action:@selector(onToggleChanged:) forControlEvents:UIControlEventValueChanged];
-
-    // Store target & setter dynamically
-    objc_setAssociatedObject(sw, "target", target, OBJC_ASSOCIATION_ASSIGN);
-    objc_setAssociatedObject(sw, "setter", [NSValue valueWithPointer:setter], OBJC_ASSOCIATION_RETAIN);
-
+    sw.onTintColor = [UIColor colorWithRed:0.2 green:0.8 blue:0.3 alpha:1.0];
+    [sw addTarget:self action:action forControlEvents:UIControlEventValueChanged];
     [self.contentScrollView addSubview:sw];
 }
 
-- (void)onToggleChanged:(UISwitch *)sender {
-    id target = objc_getAssociatedObject(sender, "target");
-    NSValue *setterVal = objc_getAssociatedObject(sender, "setter");
-    SEL setter = [setterVal pointerValue];
-
-    if (target && setter && [target respondsToSelector:setter]) {
-        void (*imp)(id, SEL, BOOL) = (void (*)(id, SEL, BOOL))[target methodForSelector:setter];
-        imp(target, setter, sender.isOn);
-    }
-}
-
-- (void)addRowSlider:(NSString *)title value:(float)value min:(float)min max:(float)max y:(CGFloat)y onChange:(void(^)(float))onChange {
+- (UILabel *)addRowSlider:(NSString *)title value:(float)value min:(float)min max:(float)max y:(CGFloat)y action:(SEL)action {
     CGFloat width = self.contentScrollView.bounds.size.width;
 
     UILabel *lbl = [[UILabel alloc] initWithFrame:CGRectMake(16, y, 140, 20)];
@@ -322,8 +305,37 @@
     slider.maximumValue = max;
     slider.value = value;
     slider.minimumTrackTintColor = [UIColor colorWithRed:0.1 green:0.6 blue:1.0 alpha:1.0];
-
+    [slider addTarget:self action:action forControlEvents:UIControlEventValueChanged];
     [self.contentScrollView addSubview:slider];
+
+    return valLbl;
+}
+
+#pragma mark - Explicit Actions
+- (void)onEspToggle:(UISwitch *)sender { [CheatController sharedInstance].espEnabled = sender.isOn; }
+- (void)onLineEspToggle:(UISwitch *)sender { [CheatController sharedInstance].lineEspEnabled = sender.isOn; }
+- (void)onBoxEspToggle:(UISwitch *)sender { [CheatController sharedInstance].boxEspEnabled = sender.isOn; }
+- (void)onInfoEspToggle:(UISwitch *)sender { [CheatController sharedInstance].infoEspEnabled = sender.isOn; }
+- (void)onBoneEspToggle:(UISwitch *)sender { [CheatController sharedInstance].boneEspEnabled = sender.isOn; }
+
+- (void)onAimbotToggle:(UISwitch *)sender { [CheatController sharedInstance].aimbotEnabled = sender.isOn; }
+- (void)onIgnoreKnockToggle:(UISwitch *)sender { [CheatController sharedInstance].ignoreKnock = sender.isOn; }
+- (void)onIgnoreBotToggle:(UISwitch *)sender { [CheatController sharedInstance].ignoreBot = sender.isOn; }
+- (void)onAimWukongToggle:(UISwitch *)sender { [CheatController sharedInstance].aimWukong = sender.isOn; }
+
+- (void)onNoRecoilToggle:(UISwitch *)sender { [CheatController sharedInstance].noRecoilEnabled = sender.isOn; }
+- (void)onNoReloadToggle:(UISwitch *)sender { [CheatController sharedInstance].noReloadEnabled = sender.isOn; }
+- (void)onSpeedToggle:(UISwitch *)sender { [CheatController sharedInstance].speedEnabled = sender.isOn; }
+- (void)onGravityToggle:(UISwitch *)sender { [CheatController sharedInstance].gravityEnabled = sender.isOn; }
+
+- (void)onAimSpeedSlider:(UISlider *)sender {
+    [CheatController sharedInstance].aimSpeed = sender.value;
+    self.aimSpeedValLabel.text = [NSString stringWithFormat:@"%.1f", sender.value];
+}
+
+- (void)onCircleSizeSlider:(UISlider *)sender {
+    [CheatController sharedInstance].circleSize = sender.value;
+    self.circleSizeValLabel.text = [NSString stringWithFormat:@"%.1f", sender.value];
 }
 
 - (void)toggleMenu {
