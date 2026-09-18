@@ -1,5 +1,41 @@
 #import "MemoryReader.h"
-#import <mach/mach_vm.h>
+
+// Forward declarations for Mach VM APIs on iOS SDK
+typedef uint64_t mach_vm_address_t;
+typedef uint64_t mach_vm_size_t;
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+extern kern_return_t mach_vm_read_overwrite(
+    vm_map_t target_task,
+    mach_vm_address_t address,
+    mach_vm_size_t size,
+    mach_vm_address_t data,
+    mach_vm_size_t *outsize
+);
+
+extern kern_return_t mach_vm_write(
+    vm_map_t target_task,
+    mach_vm_address_t address,
+    vm_offset_t data,
+    mach_msg_type_number_t dataCnt
+);
+
+extern kern_return_t mach_vm_region(
+    vm_map_t target_task,
+    mach_vm_address_t *address,
+    mach_vm_size_t *size,
+    vm_region_flavor_t flavor,
+    vm_region_info_t info,
+    mach_msg_type_number_t *infoCnt,
+    mach_port_t *object_name
+);
+
+#ifdef __cplusplus
+}
+#endif
 
 @implementation MemoryReader
 
@@ -65,13 +101,13 @@
     }
 
     // Lấy Base Address
-    mach_vm_address_t address = 0;
+    mach_vm_address_t address = 0x100000000;
     mach_vm_size_t size = 0;
-    uint32_t depth = 1;
-    struct vm_region_submap_info_64 info;
-    mach_msg_type_number_t count = VM_REGION_SUBMAP_INFO_COUNT_64;
+    vm_region_basic_info_data_64_t info;
+    mach_msg_type_number_t count = VM_REGION_BASIC_INFO_COUNT_64;
+    mach_port_t object_name = MACH_PORT_NULL;
 
-    kr = mach_vm_region_recurse(self.targetTask, &address, &size, &depth, (vm_region_recurse_info_t)&info, &count);
+    kr = mach_vm_region(self.targetTask, &address, &size, VM_REGION_BASIC_INFO_64, (vm_region_info_t)&info, &count, &object_name);
     if (kr == KERN_SUCCESS) {
         self.baseAddress = (uintptr_t)address;
     }
