@@ -1,6 +1,7 @@
 #import "ESPOverlayView.h"
 #import "CheatController.h"
 #import "../Memory/MemoryReader.h"
+#import <math.h>
 
 @interface ESPOverlayView ()
 @property (nonatomic, strong) CADisplayLink *displayLink;
