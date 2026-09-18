@@ -18,14 +18,30 @@
 - (instancetype)init {
     self = [super init];
     if (self) {
+        // ESP defaults OFF
         _espEnabled = NO;
+        _lineEspEnabled = NO;
+        _boxEspEnabled = NO;
+        _infoEspEnabled = NO;
+        _boneEspEnabled = NO;
+
+        // Aimbot defaults OFF
         _aimbotEnabled = NO;
+        _ignoreKnock = NO;
+        _ignoreBot = NO;
+        _aimWukong = NO;
+        _aimSpeed = 50.0f;
+        _circleSize = 40.0f;
+        _aimModeIndex = 0;
+        _aimTargetIndex = 0;
+        _aimTypeIndex = 0;
+
+        // Other defaults OFF
         _noRecoilEnabled = NO;
         _noReloadEnabled = NO;
         _speedEnabled = NO;
         _gravityEnabled = NO;
         _speedMultiplier = 2.0f;
-        _aimFOV = 120.0f;
     }
     return self;
 }

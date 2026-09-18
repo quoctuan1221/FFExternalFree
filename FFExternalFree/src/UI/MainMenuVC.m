@@ -1,12 +1,19 @@
 #import "MainMenuVC.h"
 #import "../Features/CheatController.h"
 #import "../Features/ESPOverlayView.h"
+#import <objc/runtime.h>
 
 @interface MainMenuVC ()
-@property (nonatomic, strong) UIVisualEffectView *blurView;
+@property (nonatomic, strong) UIView *menuContainerView;
 @property (nonatomic, strong) UIButton *floatingIcon;
 @property (nonatomic, strong) UIView *startCardView;
 @property (nonatomic, assign) BOOL isMenuVisible;
+@property (nonatomic, assign) NSInteger currentTabIndex; // 0: Esp, 1: Aimbot, 2: Other
+
+@property (nonatomic, strong) UIView *contentScrollView;
+@property (nonatomic, strong) UIButton *tabEspBtn;
+@property (nonatomic, strong) UIButton *tabAimbotBtn;
+@property (nonatomic, strong) UIButton *tabOtherBtn;
 @end
 
 @implementation MainMenuVC
@@ -14,25 +21,25 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
     self.view.backgroundColor = [UIColor clearColor];
-
     self.isMenuVisible = NO;
+    self.currentTabIndex = 0;
 
     [self setupStartScreen];
     [self setupFloatingIcon];
     [self setupMainMenuView];
 }
 
-#pragma mark - 1. Màn hình Start ban đầu (Chỉ 1 nút duy nhất)
+#pragma mark - 1. Màn hình Start ban đầu
 - (void)setupStartScreen {
     self.startCardView = [[UIView alloc] initWithFrame:CGRectMake((self.view.bounds.size.width - 240)/2, 200, 240, 140)];
-    self.startCardView.backgroundColor = [UIColor colorWithWhite:0.1 alpha:0.9];
+    self.startCardView.backgroundColor = [UIColor colorWithWhite:0.1 alpha:0.95];
     self.startCardView.layer.cornerRadius = 16;
-    self.startCardView.layer.borderColor = [UIColor cyanColor].CGColor;
+    self.startCardView.layer.borderColor = [UIColor colorWithRed:0.2 green:0.8 blue:1.0 alpha:0.8].CGColor;
     self.startCardView.layer.borderWidth = 1.5;
     [self.view addSubview:self.startCardView];
 
     UILabel *titleLabel = [[UILabel alloc] initWithFrame:CGRectMake(10, 20, 220, 30)];
-    titleLabel.text = @"FFExternal Free";
+    titleLabel.text = @"Zoro External";
     titleLabel.textColor = [UIColor whiteColor];
     titleLabel.font = [UIFont boldSystemFontOfSize:18];
     titleLabel.textAlignment = NSTextAlignmentCenter;
@@ -40,7 +47,7 @@
 
     UIButton *startButton = [UIButton buttonWithType:UIButtonTypeCustom];
     startButton.frame = CGRectMake(30, 70, 180, 44);
-    startButton.backgroundColor = [UIColor cyanColor];
+    startButton.backgroundColor = [UIColor colorWithRed:0.2 green:0.8 blue:1.0 alpha:1.0];
     [startButton setTitle:@"🚀 START CHEAT" forState:UIControlStateNormal];
     [startButton setTitleColor:[UIColor blackColor] forState:UIControlStateNormal];
     startButton.titleLabel.font = [UIFont boldSystemFontOfSize:15];
@@ -50,18 +57,15 @@
 }
 
 - (void)onStartClicked {
-    // Ẩn màn hình Start
     [UIView animateWithDuration:0.3 animations:^{
         self.startCardView.alpha = 0.0;
     } completion:^(BOOL finished) {
         [self.startCardView removeFromSuperview];
     }];
 
-    // Khởi động cheat & ESP engine
     [[CheatController sharedInstance] startLoop];
     [[ESPOverlayView sharedInstance] showOverlay];
 
-    // Hiện Nút Icon Tròn trôi nổi
     self.floatingIcon.hidden = NO;
     self.floatingIcon.transform = CGAffineTransformMakeScale(0.1, 0.1);
     [UIView animateWithDuration:0.4 delay:0 usingSpringWithDamping:0.6 initialSpringVelocity:0.5 options:0 animations:^{
@@ -69,25 +73,24 @@
     } completion:nil];
 }
 
-#pragma mark - 2. Floating Icon (Logo Tròn Kéo Thả)
+#pragma mark - 2. Floating Icon
 - (void)setupFloatingIcon {
     self.floatingIcon = [UIButton buttonWithType:UIButtonTypeCustom];
-    self.floatingIcon.frame = CGRectMake(30, 150, 50, 50);
-    self.floatingIcon.backgroundColor = [UIColor colorWithRed:0.1 green:0.7 blue:1.0 alpha:0.95];
-    [self.floatingIcon setTitle:@"⚡" forState:UIControlStateNormal];
-    self.floatingIcon.titleLabel.font = [UIFont systemFontOfSize:26];
-    self.floatingIcon.layer.cornerRadius = 25;
-    self.floatingIcon.layer.borderColor = [UIColor whiteColor].CGColor;
-    self.floatingIcon.layer.borderWidth = 2.0;
-    self.floatingIcon.layer.shadowColor = [UIColor cyanColor].CGColor;
-    self.floatingIcon.layer.shadowOffset = CGSizeZero;
-    self.floatingIcon.layer.shadowRadius = 8;
-    self.floatingIcon.layer.shadowOpacity = 0.8;
-    self.floatingIcon.hidden = YES; // Ẩn mặc định cho tới khi ấn Start
+    self.floatingIcon.frame = CGRectMake(30, 150, 48, 48);
+    self.floatingIcon.backgroundColor = [UIColor whiteColor];
+    [self.floatingIcon setTitle:@"⚔️" forState:UIControlStateNormal];
+    self.floatingIcon.titleLabel.font = [UIFont systemFontOfSize:24];
+    self.floatingIcon.layer.cornerRadius = 24;
+    self.floatingIcon.layer.borderColor = [UIColor colorWithRed:0.8 green:0.8 blue:0.8 alpha:1.0].CGColor;
+    self.floatingIcon.layer.borderWidth = 1.5;
+    self.floatingIcon.layer.shadowColor = [UIColor blackColor].CGColor;
+    self.floatingIcon.layer.shadowOffset = CGSizeMake(0, 3);
+    self.floatingIcon.layer.shadowRadius = 6;
+    self.floatingIcon.layer.shadowOpacity = 0.3;
+    self.floatingIcon.hidden = YES;
 
     [self.floatingIcon addTarget:self action:@selector(toggleMenu) forControlEvents:UIControlEventTouchUpInside];
 
-    // Thêm Cử chỉ Kéo thả (Pan Gesture)
     UIPanGestureRecognizer *pan = [[UIPanGestureRecognizer alloc] initWithTarget:self selector:@selector(handlePan:)];
     [self.floatingIcon addGestureRecognizer:pan];
 
@@ -100,98 +103,243 @@
     [pan setTranslation:CGPointZero inView:self.view];
 }
 
-#pragma mark - 3. Menu Chính (Ẩn/Hiện khi bấm Floating Icon)
+#pragma mark - 3. Zoro Style Menu (Trắng bo góc + 3 Tabs + Sliders)
 - (void)setupMainMenuView {
-    UIBlurEffect *blurEffect = [UIBlurEffect effectWithStyle:UIBlurEffectStyleDark];
-    self.blurView = [[UIVisualEffectView alloc] initWithEffect:blurEffect];
-    self.blurView.frame = CGRectMake(50, 100, 280, 420);
-    self.blurView.layer.cornerRadius = 20;
-    self.blurView.layer.masksToBounds = YES;
-    self.blurView.layer.borderColor = [UIColor colorWithRed:0.2 green:0.8 blue:1.0 alpha:0.5].CGColor;
-    self.blurView.layer.borderWidth = 1.5;
-    self.blurView.alpha = 0.0;
-    self.blurView.hidden = YES;
-    [self.view addSubview:self.blurView];
+    CGFloat width = 310;
+    CGFloat height = 430;
 
-    // Title Label
-    UILabel *titleLabel = [[UILabel alloc] initWithFrame:CGRectMake(20, 15, 240, 30)];
-    titleLabel.text = @"⚡ MENU CHEAT ⚡";
-    titleLabel.textColor = [UIColor cyanColor];
-    titleLabel.font = [UIFont boldSystemFontOfSize:18];
-    titleLabel.textAlignment = NSTextAlignmentCenter;
-    [self.blurView.contentView addSubview:titleLabel];
+    self.menuContainerView = [[UIView alloc] initWithFrame:CGRectMake((self.view.bounds.size.width - width)/2, 60, width, height)];
+    self.menuContainerView.backgroundColor = [UIColor colorWithRed:0.96 green:0.96 blue:0.96 alpha:0.98];
+    self.menuContainerView.layer.cornerRadius = 20;
+    self.menuContainerView.layer.masksToBounds = YES;
+    self.menuContainerView.alpha = 0.0;
+    self.menuContainerView.hidden = YES;
+    [self.view addSubview:self.menuContainerView];
 
-    // TẤT CẢ TÍNH NĂNG MẶC ĐỊNH TẮT (OFF)
-    [self addToggleWithTitle:@"ESP Box & Bones" y:65 selector:@selector(toggleESP:) defaultOn:NO];
-    [self addToggleWithTitle:@"Aimbot / Silent Aim" y:115 selector:@selector(toggleAimbot:) defaultOn:NO];
-    [self addToggleWithTitle:@"No Recoil" y:165 selector:@selector(toggleNoRecoil:) defaultOn:NO];
-    [self addToggleWithTitle:@"No Reload" y:215 selector:@selector(toggleNoReload:) defaultOn:NO];
-    [self addToggleWithTitle:@"Speed Hack 2x" y:265 selector:@selector(toggleSpeed:) defaultOn:NO];
-    [self addToggleWithTitle:@"Gravity Hack" y:315 selector:@selector(toggleGravity:) defaultOn:NO];
+    // Header Title "Zoro"
+    UILabel *headerLabel = [[UILabel alloc] initWithFrame:CGRectMake(0, 12, width, 26)];
+    headerLabel.text = @"Zoro";
+    headerLabel.textColor = [UIColor blackColor];
+    headerLabel.font = [UIFont boldSystemFontOfSize:19];
+    headerLabel.textAlignment = NSTextAlignmentCenter;
+    [self.menuContainerView addSubview:headerLabel];
 
-    // Nút Đóng Menu
+    // Close Button "✕"
     UIButton *closeBtn = [UIButton buttonWithType:UIButtonTypeCustom];
-    closeBtn.frame = CGRectMake(20, 365, 240, 36);
-    closeBtn.backgroundColor = [UIColor colorWithRed:1.0 green:0.2 blue:0.3 alpha:0.8];
-    [closeBtn setTitle:@"Đóng Menu" forState:UIControlStateNormal];
-    closeBtn.layer.cornerRadius = 10;
-    closeBtn.titleLabel.font = [UIFont systemFontOfSize:14 weight:UIFontWeightBold];
+    closeBtn.frame = CGRectMake(width - 38, 12, 28, 28);
+    [closeBtn setTitle:@"✕" forState:UIControlStateNormal];
+    [closeBtn setTitleColor:[UIColor blackColor] forState:UIControlStateNormal];
+    closeBtn.titleLabel.font = [UIFont systemFontOfSize:20 weight:UIFontWeightMedium];
     [closeBtn addTarget:self action:@selector(toggleMenu) forControlEvents:UIControlEventTouchUpInside];
-    [self.blurView.contentView addSubview:closeBtn];
+    [self.menuContainerView addSubview:closeBtn];
+
+    // Segmented Tabs Header
+    UIView *tabHeader = [[UIView alloc] initWithFrame:CGRectMake(0, 48, width, 40)];
+    tabHeader.backgroundColor = [UIColor colorWithRed:0.90 green:0.90 blue:0.90 alpha:1.0];
+    [self.menuContainerView addSubview:tabHeader];
+
+    CGFloat tabW = width / 3.0;
+    self.tabEspBtn = [self createTabButtonWithTitle:@"Esp" frame:CGRectMake(0, 0, tabW, 40) tag:0];
+    self.tabAimbotBtn = [self createTabButtonWithTitle:@"Aimbot" frame:CGRectMake(tabW, 0, tabW, 40) tag:1];
+    self.tabOtherBtn = [self createTabButtonWithTitle:@"Other" frame:CGRectMake(tabW*2, 0, tabW, 40) tag:2];
+
+    [tabHeader addSubview:self.tabEspBtn];
+    [tabHeader addSubview:self.tabAimbotBtn];
+    [tabHeader addSubview:self.tabOtherBtn];
+
+    // Content Scroll View
+    self.contentScrollView = [[UIView alloc] initWithFrame:CGRectMake(0, 88, width, height - 88 - 30)];
+    [self.menuContainerView addSubview:self.contentScrollView];
+
+    // Footer
+    UILabel *footerLeft = [[UILabel alloc] initWithFrame:CGRectMake(12, height - 26, 120, 20)];
+    footerLeft.text = @"FF: External";
+    footerLeft.textColor = [UIColor grayColor];
+    footerLeft.font = [UIFont systemFontOfSize:11];
+    [self.menuContainerView addSubview:footerLeft];
+
+    UILabel *footerRight = [[UILabel alloc] initWithFrame:CGRectMake(width - 132, height - 26, 120, 20)];
+    footerRight.text = @"Free Fire";
+    footerRight.textColor = [UIColor grayColor];
+    footerRight.font = [UIFont systemFontOfSize:11];
+    footerRight.textAlignment = NSTextAlignmentRight;
+    [self.menuContainerView addSubview:footerRight];
+
+    [self selectTabAtIndex:0];
+}
+
+- (UIButton *)createTabButtonWithTitle:(NSString *)title frame:(CGRect)frame tag:(NSInteger)tag {
+    UIButton *btn = [UIButton buttonWithType:UIButtonTypeCustom];
+    btn.frame = frame;
+    [btn setTitle:title forState:UIControlStateNormal];
+    [btn setTitleColor:[UIColor darkGrayColor] forState:UIControlStateNormal];
+    btn.titleLabel.font = [UIFont systemFontOfSize:14 weight:UIFontWeightBold];
+    btn.tag = tag;
+    [btn addTarget:self action:@selector(onTabSelected:) forControlEvents:UIControlEventTouchUpInside];
+    return btn;
+}
+
+- (void)onTabSelected:(UIButton *)sender {
+    [self selectTabAtIndex:sender.tag];
+}
+
+- (void)selectTabAtIndex:(NSInteger)index {
+    self.currentTabIndex = index;
+
+    // Reset styles
+    self.tabEspBtn.backgroundColor = [UIColor clearColor];
+    self.tabAimbotBtn.backgroundColor = [UIColor clearColor];
+    self.tabOtherBtn.backgroundColor = [UIColor clearColor];
+
+    [self.tabEspBtn setTitleColor:[UIColor darkGrayColor] forState:UIControlStateNormal];
+    [self.tabAimbotBtn setTitleColor:[UIColor darkGrayColor] forState:UIControlStateNormal];
+    [self.tabOtherBtn setTitleColor:[UIColor darkGrayColor] forState:UIControlStateNormal];
+
+    if (index == 0) {
+        self.tabEspBtn.backgroundColor = [UIColor colorWithRed:0.96 green:0.96 blue:0.96 alpha:1.0];
+        [self.tabEspBtn setTitleColor:[UIColor blackColor] forState:UIControlStateNormal];
+        [self renderEspTab];
+    } else if (index == 1) {
+        self.tabAimbotBtn.backgroundColor = [UIColor colorWithRed:0.96 green:0.96 blue:0.96 alpha:1.0];
+        [self.tabAimbotBtn setTitleColor:[UIColor blackColor] forState:UIControlStateNormal];
+        [self renderAimbotTab];
+    } else {
+        self.tabOtherBtn.backgroundColor = [UIColor colorWithRed:0.96 green:0.96 blue:0.96 alpha:1.0];
+        [self.tabOtherBtn setTitleColor:[UIColor blackColor] forState:UIControlStateNormal];
+        [self renderOtherTab];
+    }
+}
+
+#pragma mark - Render Tab Contents
+- (void)renderEspTab {
+    for (UIView *sub in self.contentScrollView.subviews) [sub removeFromSuperview];
+
+    CheatController *cheat = [CheatController sharedInstance];
+    CGFloat y = 10;
+    CGFloat width = self.contentScrollView.bounds.size.width;
+
+    [self addSectionHeader:@"Switch" y:y]; y += 24;
+
+    [self addRowToggle:@"Enable Esp" isOn:cheat.espEnabled y:y target:cheat setter:@selector(setEspEnabled:)]; y += 46;
+    [self addRowToggle:@"Line Esp" isOn:cheat.lineEspEnabled y:y target:cheat setter:@selector(setLineEspEnabled:)]; y += 46;
+    [self addRowToggle:@"Box Esp" isOn:cheat.boxEspEnabled y:y target:cheat setter:@selector(setBoxEspEnabled:)]; y += 46;
+    [self addRowToggle:@"Info Esp" isOn:cheat.infoEspEnabled y:y target:cheat setter:@selector(setInfoEspEnabled:)]; y += 46;
+    [self addRowToggle:@"Bone Esp" isOn:cheat.boneEspEnabled y:y target:cheat setter:@selector(setBoneEspEnabled:)]; y += 46;
+}
+
+- (void)renderAimbotTab {
+    for (UIView *sub in self.contentScrollView.subviews) [sub removeFromSuperview];
+
+    CheatController *cheat = [CheatController sharedInstance];
+    CGFloat y = 10;
+
+    [self addSectionHeader:@"Switch" y:y]; y += 24;
+
+    [self addRowToggle:@"Enable Aimbot" isOn:cheat.aimbotEnabled y:y target:cheat setter:@selector(setAimbotEnabled:)]; y += 44;
+    [self addRowToggle:@"Ignore Knock" isOn:cheat.ignoreKnock y:y target:cheat setter:@selector(setIgnoreKnock:)]; y += 44;
+    [self addRowToggle:@"Ignore Bot" isOn:cheat.ignoreBot y:y target:cheat setter:@selector(setIgnoreBot:)]; y += 44;
+    [self addRowToggle:@"Aim Wukong" isOn:cheat.aimWukong y:y target:cheat setter:@selector(setAimWukong:)]; y += 44;
+
+    [self addSectionHeader:@"Slider" y:y]; y += 24;
+
+    [self addRowSlider:@"Aim Speed" value:cheat.aimSpeed min:0 max:100 y:y onChange:^(float val) { cheat.aimSpeed = val; }]; y += 48;
+    [self addRowSlider:@"Circle Size" value:cheat.circleSize min:0 max:100 y:y onChange:^(float val) { cheat.circleSize = val; }]; y += 48;
+}
+
+- (void)renderOtherTab {
+    for (UIView *sub in self.contentScrollView.subviews) [sub removeFromSuperview];
+
+    CheatController *cheat = [CheatController sharedInstance];
+    CGFloat y = 10;
+
+    [self addSectionHeader:@"Switch" y:y]; y += 24;
+
+    [self addRowToggle:@"No Recoil" isOn:cheat.noRecoilEnabled y:y target:cheat setter:@selector(setNoRecoilEnabled:)]; y += 46;
+    [self addRowToggle:@"No Reload" isOn:cheat.noReloadEnabled y:y target:cheat setter:@selector(setNoReloadEnabled:)]; y += 46;
+    [self addRowToggle:@"Speed Hack 2x" isOn:cheat.speedEnabled y:y target:cheat setter:@selector(setSpeedEnabled:)]; y += 46;
+    [self addRowToggle:@"Gravity Hack" isOn:cheat.gravityEnabled y:y target:cheat setter:@selector(setGravityEnabled:)]; y += 46;
+}
+
+#pragma mark - Component Helpers
+- (void)addSectionHeader:(NSString *)title y:(CGFloat)y {
+    UILabel *lbl = [[UILabel alloc] initWithFrame:CGRectMake(16, y, 200, 20)];
+    lbl.text = title;
+    lbl.textColor = [UIColor darkGrayColor];
+    lbl.font = [UIFont boldSystemFontOfSize:12];
+    [self.contentScrollView addSubview:lbl];
+}
+
+- (void)addRowToggle:(NSString *)title isOn:(BOOL)isOn y:(CGFloat)y target:(id)target setter:(SEL)setter {
+    CGFloat width = self.contentScrollView.bounds.size.width;
+
+    UILabel *lbl = [[UILabel alloc] initWithFrame:CGRectMake(16, y + 6, 180, 24)];
+    lbl.text = title;
+    lbl.textColor = [UIColor blackColor];
+    lbl.font = [UIFont systemFontOfSize:14 weight:UIFontWeightMedium];
+    [self.contentScrollView addSubview:lbl];
+
+    UISwitch *sw = [[UISwitch alloc] initWithFrame:CGRectMake(width - 66, y + 2, 50, 30)];
+    sw.on = isOn;
+    sw.onTintColor = [UIColor colorWithRed:0.2 green:0.8 blue:0.3 alpha:1.0]; // Xanh lá mượt như ảnh
+    [sw addTarget:self action:@selector(onToggleChanged:) forControlEvents:UIControlEventValueChanged];
+
+    // Store target & setter dynamically
+    objc_setAssociatedObject(sw, "target", target, OBJC_ASSOCIATION_ASSIGN);
+    objc_setAssociatedObject(sw, "setter", [NSValue valueWithPointer:setter], OBJC_ASSOCIATION_RETAIN);
+
+    [self.contentScrollView addSubview:sw];
+}
+
+- (void)onToggleChanged:(UISwitch *)sender {
+    id target = objc_getAssociatedObject(sender, "target");
+    NSValue *setterVal = objc_getAssociatedObject(sender, "setter");
+    SEL setter = [setterVal pointerValue];
+
+    if (target && setter && [target respondsToSelector:setter]) {
+        void (*imp)(id, SEL, BOOL) = (void (*)(id, SEL, BOOL))[target methodForSelector:setter];
+        imp(target, setter, sender.isOn);
+    }
+}
+
+- (void)addRowSlider:(NSString *)title value:(float)value min:(float)min max:(float)max y:(CGFloat)y onChange:(void(^)(float))onChange {
+    CGFloat width = self.contentScrollView.bounds.size.width;
+
+    UILabel *lbl = [[UILabel alloc] initWithFrame:CGRectMake(16, y, 140, 20)];
+    lbl.text = title;
+    lbl.textColor = [UIColor blackColor];
+    lbl.font = [UIFont systemFontOfSize:14 weight:UIFontWeightMedium];
+    [self.contentScrollView addSubview:lbl];
+
+    UILabel *valLbl = [[UILabel alloc] initWithFrame:CGRectMake(width - 70, y, 54, 20)];
+    valLbl.text = [NSString stringWithFormat:@"%.1f", value];
+    valLbl.textColor = [UIColor grayColor];
+    valLbl.font = [UIFont systemFontOfSize:12];
+    valLbl.textAlignment = NSTextAlignmentRight;
+    [self.contentScrollView addSubview:valLbl];
+
+    UISlider *slider = [[UISlider alloc] initWithFrame:CGRectMake(16, y + 20, width - 32, 24)];
+    slider.minimumValue = min;
+    slider.maximumValue = max;
+    slider.value = value;
+    slider.minimumTrackTintColor = [UIColor colorWithRed:0.1 green:0.6 blue:1.0 alpha:1.0];
+
+    [self.contentScrollView addSubview:slider];
 }
 
 - (void)toggleMenu {
     self.isMenuVisible = !self.isMenuVisible;
     if (self.isMenuVisible) {
-        self.blurView.hidden = NO;
+        self.menuContainerView.hidden = NO;
         [UIView animateWithDuration:0.25 animations:^{
-            self.blurView.alpha = 1.0;
+            self.menuContainerView.alpha = 1.0;
         }];
     } else {
         [UIView animateWithDuration:0.25 animations:^{
-            self.blurView.alpha = 0.0;
+            self.menuContainerView.alpha = 0.0;
         } completion:^(BOOL finished) {
-            self.blurView.hidden = YES;
+            self.menuContainerView.hidden = YES;
         }];
     }
-}
-
-- (void)addToggleWithTitle:(NSString *)title y:(CGFloat)y selector:(SEL)selector defaultOn:(BOOL)defaultOn {
-    UILabel *label = [[UILabel alloc] initWithFrame:CGRectMake(20, y, 160, 30)];
-    label.text = title;
-    label.textColor = [UIColor whiteColor];
-    label.font = [UIFont systemFontOfSize:14 weight:UIFontWeightMedium];
-    [self.blurView.contentView addSubview:label];
-
-    UISwitch *sw = [[UISwitch alloc] initWithFrame:CGRectMake(195, y, 60, 30)];
-    sw.on = defaultOn;
-    sw.onTintColor = [UIColor cyanColor];
-    [sw addTarget:self action:selector forControlEvents:UIControlEventValueChanged];
-    [self.blurView.contentView addSubview:sw];
-}
-
-- (void)toggleESP:(UISwitch *)sender {
-    [CheatController sharedInstance].espEnabled = sender.isOn;
-}
-
-- (void)toggleAimbot:(UISwitch *)sender {
-    [CheatController sharedInstance].aimbotEnabled = sender.isOn;
-}
-
-- (void)toggleNoRecoil:(UISwitch *)sender {
-    [CheatController sharedInstance].noRecoilEnabled = sender.isOn;
-}
-
-- (void)toggleNoReload:(UISwitch *)sender {
-    [CheatController sharedInstance].noReloadEnabled = sender.isOn;
-}
-
-- (void)toggleSpeed:(UISwitch *)sender {
-    [CheatController sharedInstance].speedEnabled = sender.isOn;
-}
-
-- (void)toggleGravity:(UISwitch *)sender {
-    [CheatController sharedInstance].gravityEnabled = sender.isOn;
 }
 
 @end

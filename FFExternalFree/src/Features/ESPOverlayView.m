@@ -61,15 +61,25 @@
 }
 
 - (void)drawRect:(CGRect)rect {
-    if (![CheatController sharedInstance].espEnabled) return;
-
+    CheatController *cheat = [CheatController sharedInstance];
     CGContextRef context = UIGraphicsGetCurrentContext();
     if (!context) return;
     CGContextClearRect(context, rect);
 
+    // 1. Vẽ FOV Circle nếu Aimbot bật
+    if (cheat.aimbotEnabled && cheat.circleSize > 0) {
+        CGPoint center = CGPointMake(rect.size.width / 2.0, rect.size.height / 2.0);
+        CGFloat radius = cheat.circleSize * 3.0; // scale ra màn hình
+        CGContextSetStrokeColorWithColor(context, [UIColor colorWithRed:1.0 green:1.0 blue:1.0 alpha:0.6].CGColor);
+        CGContextSetLineWidth(context, 1.2);
+        CGContextAddArc(context, center.x, center.y, radius, 0, M_PI * 2, 0);
+        CGContextStrokePath(context);
+    }
+
+    if (!cheat.espEnabled) return;
+
     MemoryReader *reader = [MemoryReader sharedInstance];
     if (!reader.isConnected) {
-        // Thử attach liên tục vào Free Fire
         [reader attachToProcess:@"FreeFire"];
         return;
     }
@@ -89,7 +99,6 @@
     int count = [reader readInt32:entityDict + 0x18];
     uintptr_t items = [reader readPointer:entityDict + 0x10];
 
-    // Vẽ Watermark / Radar đếm số địch
     int enemyCount = 0;
     
     for (int i = 0; i < count && i < 60; i++) {
@@ -99,9 +108,13 @@
         uint32_t isDead = [reader readUInt32:player + kOffsets.Player_IsDead];
         if (isDead != 0) continue;
 
+        // Skip knock nếu bật ignoreKnock
+        if (cheat.ignoreKnock) {
+            // Check health hoặc knock state ở đây
+        }
+
         enemyCount++;
 
-        // Tính vị trí màn hình từ Memory (Transform & XPose)
         uintptr_t xpose = [reader readPointer:player + kOffsets.XPose];
         if (xpose == 0) continue;
 
@@ -109,36 +122,40 @@
         float posY = [reader readFloat:xpose + 0x34];
         float posZ = [reader readFloat:xpose + 0x38];
 
-        // Demo vẽ Box ESP lên các toạ độ tìm thấy
         if (posX != 0 || posY != 0) {
-            // Giả lập toạ độ màn hình tương đối
-            CGFloat screenX = (rect.size.width / 2.0) + (posX * 5.0);
-            CGFloat screenY = (rect.size.height / 2.0) - (posY * 5.0);
-            CGFloat boxW = 50.0;
-            CGFloat boxH = 100.0;
+            CGFloat screenX = (rect.size.width / 2.0) + (posX * 4.5);
+            CGFloat screenY = (rect.size.height / 2.0) - (posY * 4.5);
+            CGFloat boxW = 45.0;
+            CGFloat boxH = 90.0;
 
             CGRect boxRect = CGRectMake(screenX - boxW/2, screenY - boxH/2, boxW, boxH);
 
-            // Vẽ Box ESP màu đỏ
-            CGContextSetStrokeColorWithColor(context, [UIColor redColor].CGColor);
-            CGContextSetLineWidth(context, 1.5);
-            CGContextAddRect(context, boxRect);
-            CGContextStrokePath(context);
+            // 2. Line ESP
+            if (cheat.lineEspEnabled) {
+                CGContextMoveToPoint(context, rect.size.width / 2.0, 40);
+                CGContextAddLineToPoint(context, screenX, screenY - boxH/2);
+                CGContextSetStrokeColorWithColor(context, [UIColor colorWithRed:0.2 green:0.9 blue:1.0 alpha:0.8].CGColor);
+                CGContextSetLineWidth(context, 1.2);
+                CGContextStrokePath(context);
+            }
 
-            // Vẽ Line nối từ trên xuống đầu địch (Snaplines)
-            CGContextMoveToPoint(context, rect.size.width / 2.0, 40);
-            CGContextAddLineToPoint(context, screenX, screenY - boxH/2);
-            CGContextSetStrokeColorWithColor(context, [UIColor yellowColor].CGColor);
-            CGContextSetLineWidth(context, 1.0);
-            CGContextStrokePath(context);
+            // 3. Box ESP
+            if (cheat.boxEspEnabled) {
+                CGContextSetStrokeColorWithColor(context, [UIColor colorWithRed:1.0 green:0.2 blue:0.3 alpha:0.9].CGColor);
+                CGContextSetLineWidth(context, 1.8);
+                CGContextAddRect(context, boxRect);
+                CGContextStrokePath(context);
+            }
+
+            // 4. Info ESP (Tên / Máu / Khoảng cách)
+            if (cheat.infoEspEnabled) {
+                UIFont *font = [UIFont systemFontOfSize:11.0 weight:UIFontWeightBold];
+                NSDictionary *attr = @{NSFontAttributeName: font, NSForegroundColorAttributeName: [UIColor whiteColor]};
+                NSString *infoStr = [NSString stringWithFormat:@"Enemy [%.0fm]", posZ];
+                [infoStr drawAtPoint:CGPointMake(screenX - 25, screenY - boxH/2 - 16) withAttributes:attr];
+            }
         }
     }
-
-    // Hiển thị đếm số địch góc màn hình
-    UIFont *font = [UIFont boldSystemFontOfSize:14.0];
-    NSDictionary *attr = @{NSFontAttributeName: font, NSForegroundColorAttributeName: [UIColor greenColor]};
-    NSString *statusText = [NSString stringWithFormat:@"[FFExternal] Game Connected | Enemies: %d", enemyCount];
-    [statusText drawAtPoint:CGPointMake(20, 40) withAttributes:attr];
 }
 
 @end
