@@ -1,0 +1,59 @@
+name: Build FFExternalFree TIPA
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Install ldid for signing
+        run: |
+          brew install ldid
+
+      - name: Compile App Binary (clang / Objective-C)
+        run: |
+          mkdir -p build/Payload/FFExternalFree.app
+          
+          xcrun -sdk iphoneos clang -arch arm64 \
+            -miphoneos-version-min=14.0 \
+            -fobjc-arc \
+            -framework Foundation \
+            -framework UIKit \
+            -framework CoreGraphics \
+            -framework QuartzCore \
+            FFExternalFree/src/main.m \
+            FFExternalFree/src/Memory/MemoryReader.m \
+            FFExternalFree/src/Features/CheatController.m \
+            FFExternalFree/src/Features/ESPOverlayView.m \
+            FFExternalFree/src/UI/MainMenuVC.m \
+            -o build/Payload/FFExternalFree.app/FFExternalFree
+
+      - name: Copy Info.plist and Sign Entitlements
+        run: |
+          cp FFExternalFree/Info.plist build/Payload/FFExternalFree.app/Info.plist
+          ldid -SFFExternalFree/entitlements.plist build/Payload/FFExternalFree.app/FFExternalFree
+
+      - name: Package to TIPA (TrollStore IPA)
+        run: |
+          cd build
+          zip -r ../FFExternalFree.tipa Payload
+
+      - name: Upload TIPA Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: FFExternalFree-TrollStore
+          path: FFExternalFree.tipa
